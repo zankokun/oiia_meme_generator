@@ -8,7 +8,7 @@ import os
 # --- Конфигурация ---
 STAND_IMG = 'stand.png'  # Картинка стоящего кота
 SIT_IMG = 'sit.png'      # Картинка сидящего кота
-AUDIO_FILE = 'music.mp3' # Музыка (опционально)
+AUDIO_FILE = 'OIIA.mp3' # Музыка (опционально)
 OUTPUT_VIDEO = 'oiia_cat_meme.mp4'
 FPS = 60
 DURATION = 10  # секунд
@@ -24,6 +24,11 @@ def extract_cat(img_path):
     return img_rgba
 
 
+def resize_cat_rgba(cat_img, out_h, out_w):
+    # Масштабируем изображение кота с альфа-каналом до out_h x out_w
+    return cv2.resize(cat_img, (out_w, out_h), interpolation=cv2.INTER_AREA)
+
+
 def create_frames(cat_img, duration, fps, out_h, out_w):
     frames = []
     h, w = cat_img.shape[:2]
@@ -33,13 +38,17 @@ def create_frames(cat_img, duration, fps, out_h, out_w):
     alpha = cat_img[..., 3] / 255.0
     for i in range(total_frames):
         # 3D вращение: имитируем перспективу с помощью сжатия по ширине
-        angle = (i / total_frames) * 360
+        angle = i
         rad = np.deg2rad(angle)
-        scale = abs(np.cos(rad)) * 0.7 + 0.3  # ширина меняется от 0.3 до 1.0
+        scale = abs(np.cos(rad)) * 0.7 + 0.05  # ширина меняется
         new_w = max(1, int(w * scale))
         # Масштабируем кота по ширине
         cat_scaled = cv2.resize(cat_rgb, (new_w, h), interpolation=cv2.INTER_AREA)
         alpha_scaled = cv2.resize(alpha, (new_w, h), interpolation=cv2.INTER_AREA)
+        # Эмулируем полный оборот: зеркалим изображение, если угол > 180°
+        if()
+        cat_scaled = cv2.flip(cat_scaled, 1)
+        alpha_scaled = cv2.flip(alpha_scaled, 1)
         # Создаем пустой кадр
         frame = bg.copy()
         # Центрируем кота относительно центра видео
@@ -73,6 +82,10 @@ def main():
     h2, w2 = sit_cat_img.shape[:2]
     out_h, out_w = max(h1, h2, 512), max(w1, w2, 512)
 
+    # Масштабируем оба изображения котов к одному размеру
+    stand_cat_img = resize_cat_rgba(stand_cat_img, out_h, out_w)
+    sit_cat_img = resize_cat_rgba(sit_cat_img, out_h, out_w)
+
     # 2 секунды стоящего кота (без вращения)
     stand_frames = []
     bg = np.full((out_h, out_w, 3), BG_COLOR, dtype=np.uint8)
@@ -80,11 +93,11 @@ def main():
     alpha = stand_cat_img[..., 3] / 255.0
     for _ in range(int(2 * FPS)):
         frame = bg.copy()
-        x_offset = (out_w - w1) // 2
-        y_offset = (out_h - h1) // 2
+        x_offset = 0
+        y_offset = 0
         for c in range(3):
-            frame[y_offset:y_offset+h1, x_offset:x_offset+w1, c] = (
-                frame[y_offset:y_offset+h1, x_offset:x_offset+w1, c] * (1 - alpha) + cat_rgb[:, :, c] * alpha
+            frame[y_offset:y_offset+out_h, x_offset:x_offset+out_w, c] = (
+                frame[y_offset:y_offset+out_h, x_offset:x_offset+out_w, c] * (1 - alpha) + cat_rgb[:, :, c] * alpha
             ).astype(np.uint8)
         stand_frames.append(frame)
 
@@ -95,8 +108,8 @@ def main():
 
     clip = ImageSequenceClip([cv2.cvtColor(f, cv2.COLOR_BGR2RGB) for f in frames], fps=FPS)
     if os.path.exists(AUDIO_FILE):
-        audio = AudioFileClip(AUDIO_FILE).subclip(0, 5)
-        clip = clip.set_audio(audio)
+        audio = AudioFileClip(AUDIO_FILE).subclipped(0, 5)
+        clip = clip.with_audio(audio)
     clip.write_videofile(OUTPUT_VIDEO, codec='libx264', audio_codec='aac')
     print(f'Видео сохранено: {OUTPUT_VIDEO}')
 

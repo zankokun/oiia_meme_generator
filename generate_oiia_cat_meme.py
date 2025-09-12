@@ -38,7 +38,7 @@ def create_frames(cat_img, duration, fps, out_h, out_w):
     alpha = cat_img[..., 3] / 255.0
     for i in range(total_frames):
         # 3D вращение: имитируем перспективу с помощью сжатия по ширине
-        angle = i
+        angle = 3*i
         rad = np.deg2rad(angle)
         scale = abs(np.cos(rad)) * 0.7 + 0.05  # ширина меняется
         new_w = max(1, int(w * scale))
@@ -46,9 +46,9 @@ def create_frames(cat_img, duration, fps, out_h, out_w):
         cat_scaled = cv2.resize(cat_rgb, (new_w, h), interpolation=cv2.INTER_AREA)
         alpha_scaled = cv2.resize(alpha, (new_w, h), interpolation=cv2.INTER_AREA)
         # Эмулируем полный оборот: зеркалим изображение, если угол > 180°
-        if()
-        cat_scaled = cv2.flip(cat_scaled, 1)
-        alpha_scaled = cv2.flip(alpha_scaled, 1)
+        if(np.sin(rad)>0):
+            cat_scaled = cv2.flip(cat_scaled, 1)
+            alpha_scaled = cv2.flip(alpha_scaled, 1)
         # Создаем пустой кадр
         frame = bg.copy()
         # Центрируем кота относительно центра видео
@@ -101,8 +101,8 @@ def main():
             ).astype(np.uint8)
         stand_frames.append(frame)
 
-    # 3 секунды сидящего вращающегося кота
-    spin_frames = create_frames(sit_cat_img, 3, FPS, out_h, out_w)
+    # 5 секунды сидящего вращающегося кота
+    spin_frames = create_frames(sit_cat_img, 5, FPS, out_h, out_w)
 
     frames = stand_frames + spin_frames
 

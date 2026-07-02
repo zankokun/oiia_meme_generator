@@ -1,6 +1,0 @@
-opencv-python
-rembg
-moviepy
-numpy
-onnxruntime
-moviepy

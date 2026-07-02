@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OIIA Cat Meme Generator</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: system-ui, sans-serif; background: #1a1a2e; color: #fff; min-height: 100vh; }
+    .container { max-width: 800px; margin: 0 auto; padding: 2rem; }
+    h1 { text-align: center; margin-bottom: 2rem; font-size: 2rem; }
+    .upload-area {
+      border: 3px dashed #444; border-radius: 16px; padding: 3rem;
+      text-align: center; cursor: pointer; transition: all 0.3s;
+    }
+    .upload-area:hover { border-color: #e94560; background: rgba(233,69,96,0.1); }
+    .upload-area.dragover { border-color: #e94560; background: rgba(233,69,96,0.2); }
+    #preview { max-width: 300px; margin: 1rem auto; display: none; border-radius: 8px; }
+    .btn {
+      display: block; width: 100%; padding: 1rem; margin-top: 1.5rem;
+      background: #e94560; color: #fff; border: none; border-radius: 8px;
+      font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: all 0.3s;
+    }
+    .btn:hover { background: #c73e54; }
+    .btn:disabled { background: #444; cursor: not-allowed; }
+    #status { margin-top: 1rem; padding: 1rem; border-radius: 8px; display: none; }
+    #status.success { background: rgba(0,200,0,0.2); display: block; }
+    #status.error { background: rgba(200,0,0,0.2); display: block; }
+    #status.loading { background: rgba(0,100,200,0.2); display: block; }
+    video { width: 100%; margin-top: 1rem; border-radius: 8px; display: none; }
+    #features { margin-top: 1rem; padding: 1rem; background: #2a2a4a; border-radius: 8px; display: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>OIIA Cat Meme Generator</h1>
+    <p style="text-align:center;margin-bottom:2rem;color:#888">
+      Upload a cat photo → Get a spinning 3D meme video
+    </p>
+
+    <div class="upload-area" id="dropZone">
+      <p>Drop your cat photo here or click to browse</p>
+      <input type="file" id="fileInput" accept="image/*" hidden>
+      <img id="preview">
+    </div>
+
+    <button class="btn" id="generateBtn" disabled>Generate OIIA Meme</button>
+
+    <div id="status"></div>
+    <video id="video" controls></video>
+    <div id="features"></div>
+  </div>
+
+  <script>
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const preview = document.getElementById('preview');
+    const generateBtn = document.getElementById('generateBtn');
+    const status = document.getElementById('status');
+    const video = document.getElementById('video');
+    const features = document.getElementById('features');
+    let selectedFile = null;
+
+    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      handleFile(e.dataTransfer.files[0]);
+    });
+    fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
+
+    function handleFile(file) {
+      if (!file || !file.type.startsWith('image/')) return;
+      selectedFile = file;
+      const reader = new FileReader();
+      reader.onload = e => { preview.src = e.target.result; preview.style.display = 'block'; };
+      reader.readAsDataURL(file);
+      generateBtn.disabled = false;
+    }
+
+    generateBtn.addEventListener('click', async () => {
+      if (!selectedFile) return;
+      generateBtn.disabled = true;
+      status.className = 'loading';
+      status.textContent = 'Generating your OIIA meme... This may take a minute.';
+
+      const formData = new FormData();
+      formData.append('catPhoto', selectedFile);
+
+      try {
+        const res = await fetch('/api/generate', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.videoUrl) {
+          video.src = data.videoUrl;
+          video.style.display = 'block';
+          status.className = 'success';
+          status.textContent = 'Video generated!';
+        } else {
+          status.className = 'error';
+          status.textContent = data.error || 'Generation failed';
+        }
+      } catch (err) {
+        status.className = 'error';
+        status.textContent = 'Error: ' + err.message;
+      }
+      generateBtn.disabled = false;
+    });
+  </script>
+</body>
+</html>
